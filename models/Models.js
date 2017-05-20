@@ -27,7 +27,7 @@ const carSchema = new mongoose.Schema({
     },
     model: String,
     year: String,
-    serviceBook: [serviceSchema]
+    services: [serviceSchema]
 }, {
         timestamps: true
     });

@@ -27,10 +27,9 @@ if (process.env.NODE_ENV == 'production') {
   mongoose.connect(config.db);
   app.set('superSecret', config.secret);
 }
-mongoose.connect(dbUrl);
 
 // Routes
-let API = require('./routes/api.js');
+let API = require('./routes/api.js').API;
 app.use('/api/', API);
 
 // Error handler

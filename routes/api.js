@@ -35,24 +35,7 @@ UserAPI.use(RouteHelper.verifyToken);
 VendorAPI.use(RouteHelper.verifyToken);
 AdminAPI.use(RouteHelper.verifyToken);
 
-// User API Routes
-
-UserAPIUnrestricted.post('/register', validate({
-    body: Schema.Type.User
-}), UserRegister);
-
-UserAPIUnrestricted.post('/authenticate', validate({
-    body: Schema.Request.Authenticate
-}), UserAuthenticate);
-
-
-UserAPI.get('/', UserGetProfile);
-UserAPI.get('/cars', GetCars);
-UserAPI.post('/cars', validate({
-    body: Schema.Request.NewCar
-}), UserAddCar);
-
-// Vendor API Routes
+// API Functions
 
 let UserRegister = function (req, res, next) {
     let newUser = new User({
@@ -195,6 +178,55 @@ let VendorGetProfile = function (req, res, next) {
         });
 };
 
+let VendorGetAllServicedCars = function (req, res, next) {
+    Car
+        .find({
+            services: {
+                $elemmatch: {
+                    vendorID: req.userID
+                }
+            }
+        })
+        .exec()
+        .then((cars) => {
+            res.json(cars);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+let VendorAddServiceToCar = function (req, res, next) {
+    var newService = new Service({
+        vendorID: VendorID,
+        mechanicName: req.body.mechanicName,
+        date: req.body.date ? moment().format(req.body.date + "") : moment().format(),
+        cost: req.body.cost,
+        description: req.body.description
+    });
+
+    Car
+        .findOne({
+            _id: req.params.id
+        })
+        .exec()
+        .then((car) => {
+            if (!car) {
+                res.status(404).json({ code: 201 });
+            } else {
+                car.services.push(newService);
+                car.markModified('services');
+                car
+                    .save()
+                    .then((savedCar) => {
+                        res.status(201);
+                    })
+                    .catch((error) => {
+                        next(error);
+                    });
+            }
+        });
+};
 
 /**
  * Gets User from DB by ID
@@ -208,6 +240,7 @@ function getUser(id) {
             .findOne({
                 _id: id
             })
+            .exec()
             .then((user) => {
                 if (user) {
                     resolve(user);
@@ -233,6 +266,7 @@ function getVendor(id) {
             .findOne({
                 _id: id
             })
+            .exec()
             .then((vendor) => {
                 if (vendor) {
                     resolve(vendor);
@@ -245,6 +279,41 @@ function getVendor(id) {
             });
     });
 }
+
+// User API Routes
+
+UserAPIUnrestricted.post('/register', validate({
+    body: Schema.Type.User
+}), UserRegister);
+
+UserAPIUnrestricted.post('/authenticate', validate({
+    body: Schema.Request.Authenticate
+}), UserAuthenticate);
+
+
+UserAPI.get('/', UserGetProfile);
+UserAPI.get('/cars', GetCars);
+UserAPI.post('/cars', validate({
+    body: Schema.Request.NewCar
+}), UserAddCar);
+
+// Vendor API Routes
+
+VendorAPIUnrestricted.post('/register', validate({
+    body: Schema.Type.Vendor
+}), VendorRegister);
+
+VendorAPIUnrestricted.post('/authenticate', validate({
+    body: Schema.Request.Authenticate
+}), VendorAuthenticate);
+
+
+VendorAPI.get('/', VendorGetProfile);
+VendorAPI.get('/services', VendorGetAllServicedCars);
+VendorAPI.post('/cars/:id/services', validate({
+    body: Schema.Type.Service,
+    params: Schema.Request.ID
+}), VendorAddServiceToCar);
 
 let API = express.Router();
 API.use('/user/', [UserAPIUnrestricted, UserAPI]);
