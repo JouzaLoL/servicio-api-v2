@@ -11,6 +11,7 @@ let Vendor = Models.Vendor;
 
 // Receipt stuff
 let fs = require('fs');
+let imageType = require('image-type');
 
 // Log all db access to console
 // mongoose.set('debug', true);

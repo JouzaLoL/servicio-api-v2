@@ -1,34 +1,35 @@
 'use strict';
-let app = require('../app');
-let express = require('express');
+const app = require('../app');
+const express = require('express');
 
 // Modules
-let jwt = require('jsonwebtoken');
-let moment = require('moment');
+const jwt = require('jsonwebtoken');
+const moment = require('moment');
+const cloudinary = require('cloudinary');
 
 // Models
-let UserModels = require('../models/Models');
-let User = UserModels.User;
-let Car = UserModels.Car;
-let Service = UserModels.Service;
-let Vendor = UserModels.Vendor;
+const UserModels = require('../models/Models');
+const User = UserModels.User;
+const Car = UserModels.Car;
+const Service = UserModels.Service;
+const Vendor = UserModels.Vendor;
 
 // Route Helper
-let RouteHelper = require('./routeHelper.js');
+const RouteHelper = require('./routeHelper.js');
 
 // Validation
-let Validator = require('express-json-validator-middleware').Validator;
-let validator = new Validator({ allErrors: true });
-let validate = validator.validate.bind(validator);
-let Schema = require('../jsonschema/schema');
+const Validator = require('express-json-validator-middleware').Validator;
+const validator = new Validator({ allErrors: true });
+const validate = validator.validate.bind(validator);
+const Schema = require('../jsonschema/schema');
 
 // Init routers
-let UserAPIUnrestricted = express.Router();
-let UserAPI = express.Router();
-let VendorAPIUnrestricted = express.Router();
-let VendorAPI = express.Router();
-let AdminAPIUnrestricted = express.Router();
-let AdminAPI = express.Router();
+const UserAPIUnrestricted = express.Router();
+const UserAPI = express.Router();
+const VendorAPIUnrestricted = express.Router();
+const VendorAPI = express.Router();
+const AdminAPIUnrestricted = express.Router();
+const AdminAPI = express.Router();
 
 // Apply Authentication via JWT
 UserAPI.use(RouteHelper.verifyToken);
@@ -105,6 +106,12 @@ var GetCars = function (req, res, next) {
 };
 
 let UserAddCar = function (req, res, next) {
+    if (req.files) {
+        cloudinary.uploader.upload(req.files.carImage.path, () => { }, {
+            public_id: req.body.SPZ
+        });
+    }
+
     let newCar = new Car({
         owner: req.userID,
         SPZ: req.body.SPZ,
@@ -170,8 +177,8 @@ let VendorAuthenticate = function (req, res, next) {
 
 let VendorGetProfile = function (req, res, next) {
     getVendor(req.userID)
-        .then((user) => {
-            res.json(RouteHelper.strip(user));
+        .then((vendor) => {
+            res.json(RouteHelper.strip(vendor));
         })
         .catch((error) => {
             next(error);
@@ -207,7 +214,7 @@ let VendorAddServiceToCar = function (req, res, next) {
 
     Car
         .findOne({
-            _id: req.params.id
+            SPZ: req.params.spz
         })
         .exec()
         .then((car) => {
@@ -310,9 +317,8 @@ VendorAPIUnrestricted.post('/authenticate', validate({
 
 VendorAPI.get('/', VendorGetProfile);
 VendorAPI.get('/services', VendorGetAllServicedCars);
-VendorAPI.post('/cars/:id/services', validate({
-    body: Schema.Type.Service,
-    params: Schema.Request.ID
+VendorAPI.post('/cars/:spz/services', validate({
+    body: Schema.Type.Service
 }), VendorAddServiceToCar);
 
 let API = express.Router();
@@ -320,6 +326,4 @@ API.use('/user/', [UserAPIUnrestricted, UserAPI]);
 API.use('/vendor/', [VendorAPIUnrestricted, VendorAPI]);
 API.use('/admin/', [AdminAPIUnrestricted, AdminAPI]);
 
-module.exports = {
-    API
-};
+module.exports = API;

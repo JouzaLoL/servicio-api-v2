@@ -1,23 +1,33 @@
 'use strict';
 
-let express = require('express');
+const express = require('express');
 var app = express();
 module.exports = app;
 
 // Modules
-let chalk = require('chalk');
+const chalk = require('chalk');
 
-let bodyParser = require('body-parser');
+const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: false
 }));
 
-let cors = require('cors');
+const cors = require('cors');
 app.use(cors());
 
-let config = require('config');
-let mongoose = require('mongoose');
+const cloudinary = require('cloudinary');
+cloudinary.config({
+  cloud_name: 'servicio-api',
+  api_key: '456748836688146',
+  api_secret: 'AVG1WDpm4oKu1u-wCeEf4OjcN7k'
+});
+
+const fileUpload = require('express-fileupload');
+app.use(fileUpload());
+
+const config = require('config');
+const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 if (process.env.NODE_ENV == 'production') {
   console.log('Configuring server for production environment');
@@ -29,15 +39,15 @@ if (process.env.NODE_ENV == 'production') {
 }
 
 // Routes
-let API = require('./routes/api.js').API;
+const API = require('./routes/api.js');
 app.use('/api/', API);
 
 // Error handler
-let errorHandler = require('./errors/error-handler.js');
+const errorHandler = require('./errors/error-handler.js');
 app.use(errorHandler);
 
 // Start server
-let port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(chalk.green('Server started') + " | NODE_ENV: " + config.util.getEnv('NODE_ENV'));
 });
